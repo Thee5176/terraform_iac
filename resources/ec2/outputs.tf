@@ -9,3 +9,7 @@ output "web_sg_id" {
 	value       = aws_security_group.web_sg.id
 }
 
+output "ec2_instance_id"{
+	description = "Instance id of the web server"
+	value       = aws_instance.web_server.id
+}

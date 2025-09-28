@@ -7,5 +7,9 @@ output "web_subnet_id" {
 }
 
 output "db_subnet_ids" {
-  value = [aws_subnet.db_subnet_1.id, aws_subnet.db_subnet_2.id]
+  value = aws_subnet.db_subnet[*].id
+}
+
+output "alb_subnet_ids" {
+  value = aws_subnet.alb_subnet[*].id
 }

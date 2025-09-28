@@ -12,6 +12,10 @@ resource "aws_vpc" "main_vpc" {
   }
 }
 
+data "aws_availability_zones" "available" {
+  state = "available"
+}
+
 # Internet Gateway : allow access in VPC level
 resource "aws_internet_gateway" "main_igw" {
   vpc_id     = aws_vpc.main_vpc.id
@@ -31,63 +35,87 @@ resource "aws_route_table" "public_route" {
   }
 }
 
-# EC2 Subnet : define IP address range based on VPC
+# Route : connect internet gateway with route table
+resource "aws_route" "public_route" {
+  destination_cidr_block = "0.0.0.0/0"
+  gateway_id             = aws_internet_gateway.main_igw.id
+  route_table_id         = aws_route_table.public_route.id
+}
+
+# EC2 Subnet (Private)
 resource "aws_subnet" "web_subnet" {
   vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "172.16.0.0/24"
-  availability_zone = "ap-northeast-1a"
+  cidr_block        = cidrsubnet(aws_vpc.main_vpc.cidr_block, 8, 10 ) # 172.16.10.0/24
+  availability_zone = data.aws_availability_zones.available.names[0]
 
   tags = {
     Name    = "${var.project_name}_web_subnet"
     Environment = var.environment_name
   }
-}
 
-# DB Subnet 1
-resource "aws_subnet" "db_subnet_1" {
-  vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "172.16.1.0/24"
-  availability_zone = "ap-northeast-1a"
-
-  tags = {
-    Name    = "${var.project_name}_db_subnet_1"
-    Environment = var.environment_name
+  lifecycle {
+    # Avoid replacing subnets just because availability_zone changed in config
+    ignore_changes = [availability_zone, cidr_block]
   }
 }
 
-# DB Subnet 2
-resource "aws_subnet" "db_subnet_2" {
+# ALB Subnet (Public)
+resource "aws_subnet" "alb_subnet" {
+  count = min(length(data.aws_availability_zones.available.names), 2)
+
   vpc_id            = aws_vpc.main_vpc.id
-  cidr_block        = "172.16.2.0/24"
-  availability_zone = "ap-northeast-1c"
+  cidr_block        = cidrsubnet(aws_vpc.main_vpc.cidr_block, 8, 40 + count.index) # 172.16.40.0/24, 172.16.41.0/24
+  availability_zone = data.aws_availability_zones.available.names[count.index]
 
   tags = {
-    Name    = "${var.project_name}_db_subnet_2"
+    Name    = "${var.project_name}_alb_subnet_${count.index + 1}"
     Environment = var.environment_name
+  }
+
+  lifecycle {
+    # Avoid replacing subnets when AZ mapping changes
+    ignore_changes = [availability_zone, cidr_block]
   }
 }
 
+# DB Subnet (Private)
+resource "aws_subnet" "db_subnet" {
+  count = min(length(data.aws_availability_zones.available.names), 2)
+
+  vpc_id            = aws_vpc.main_vpc.id
+  cidr_block        = cidrsubnet(aws_vpc.main_vpc.cidr_block, 8, 60 + count.index) # 172.16.60.0/24, 172.16.61.0/24
+  availability_zone = data.aws_availability_zones.available.names[count.index]
+
+  tags = {
+    Name    = "${var.project_name}_db_subnet_${count.index + 1}"
+    Environment = var.environment_name
+  }
+
+  lifecycle {
+    # Avoid replacing DB subnets just because AZ mapping changed
+    ignore_changes = [availability_zone, cidr_block]
+  }
+}
+
+
+#TODO : later remove and turn into private subnet -> access through alb public subnet only
 # Public Table Association : connect EC2 subnet with public route table
 resource "aws_route_table_association" "public_subnet_association" {
   subnet_id      = aws_subnet.web_subnet.id
   route_table_id = aws_route_table.public_route.id
 }
 
+resource "aws_route_table_association" "alb_subnet_assocs" {
+  count = length(aws_subnet.alb_subnet)
+
+  subnet_id      = aws_subnet.alb_subnet[count.index].id
+  route_table_id = aws_route_table.public_route.id
+}
 
 # RDS Table Association : connect RDS subnet with public route table
-resource "aws_route_table_association" "db_subnet1_assoc" {
-  subnet_id      = aws_subnet.db_subnet_1.id
-  route_table_id = aws_route_table.public_route.id
-}
+resource "aws_route_table_association" "db_subnet_assoc" {
+  count = length(aws_subnet.db_subnet)  
 
-resource "aws_route_table_association" "db_subnet2_assoc" {
-  subnet_id      = aws_subnet.db_subnet_2.id
+  subnet_id      = aws_subnet.db_subnet[count.index].id
   route_table_id = aws_route_table.public_route.id
-}
-
-# Route : connect internet gateway with route table
-resource "aws_route" "public_route" {
-  destination_cidr_block = "0.0.0.0/0"
-  gateway_id             = aws_internet_gateway.main_igw.id
-  route_table_id         = aws_route_table.public_route.id
 }
