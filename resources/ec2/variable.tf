@@ -22,7 +22,7 @@ variable "vpc_id" {
   type        = string
 }
 
-variable "server_subnet_id" {
+variable "web_subnet_id" {
   description = "Subnet id for EC2 instance"
   type        = string
 }

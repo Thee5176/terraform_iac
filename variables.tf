@@ -7,6 +7,7 @@ variable "project_name" {
 variable "environment_name" {
   description = "Environment name used for tagging"
   type        = string
+  default     = "dev"
 }
 
 variable "aws_access_key" {
@@ -92,4 +93,10 @@ variable "query_service_port" {
   description = "Port for the Query Service"
   type        = number
   default     = 8182
+}
+
+variable "domain_name" {
+  description = "Domain name for ACM certificate and Route53 hosted zone"
+  type        = string
+  default     = "CqrsAccountingProject.com"
 }

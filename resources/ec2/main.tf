@@ -1,22 +1,10 @@
 ##------------------------EC2 Instance---------------------------
-# EC2 Subnet : define IP address range based on VPC
-resource "aws_subnet" "web_subnet" {
-  vpc_id            = var.vpc_id
-  cidr_block        = "172.16.0.0/24"
-  availability_zone = "ap-northeast-1a"
-
-  tags = {
-    Name    = "${var.project_name}_ec2_subnet"
-    Environment = var.environment_name
-  }
-}
-
 # EC2
 resource "aws_instance" "web_server" {
   ami                         = "ami-000322c84e9ff1be2" #Amazon Linux 2 (ap-ne-1)
   instance_type               = "t3.micro"
   key_name                    = data.aws_key_pair.deployment_key.key_name
-  subnet_id                   = aws_subnet.web_subnet.id
+  subnet_id                   = var.web_subnet_id
   vpc_security_group_ids      = [aws_security_group.web_sg.id]
   associate_public_ip_address = true
 
