@@ -7,3 +7,8 @@ output "rds_endpoint" {
   description = "RDS access endpoint (from rds module)"
   value       = module.rds.db_endpoint
 }
+
+output "alb_dns_name" {
+  description = "ALB DNS name (from alb module)"
+  value       = module.alb.alb_dns_name
+}

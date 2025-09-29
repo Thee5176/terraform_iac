@@ -27,3 +27,19 @@ variable "domain_name" {
     description = "Domain name for the application load balancer"
     type        = string
 }
+
+variable "certificate_arn" {
+  description = "ARN of ACM certificate to use for HTTPS; empty = create HTTP listener instead"
+  type        = string
+}
+
+variable "ssl_policy" {
+  description = "SSL policy for HTTPS listener"
+  type        = string
+  default     = "ELBSecurityPolicy-2016-08"
+}
+
+variable "web_sg_id" {
+  description = "Security group id of web (EC2) resources allowed to access by ALB"
+  type        = string
+}

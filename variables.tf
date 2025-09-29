@@ -98,5 +98,5 @@ variable "query_service_port" {
 variable "domain_name" {
   description = "Domain name for ACM certificate and Route53 hosted zone"
   type        = string
-  default     = "CqrsAccountingProject.com"
+  default     = "MyAccountingProject.com"
 }

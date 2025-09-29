@@ -29,8 +29,6 @@ resource "aws_instance" "web_server" {
 
     # Clone the repository and checkout the docker directory
     git clone --recurse-submodules -j3 https://github.com/Thee5176/Accounting_CQRS_Project.git
-    cd Accounting_CQRS_Project
-    git sparse-checkout set docker react_mui_cqrs --no-cone
   EOF
 
   tags = {

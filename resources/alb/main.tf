@@ -34,20 +34,22 @@ resource "aws_lb" "backend_alb"{
 
 
 # ALB Listener
-resource "aws_lb_listener" "alb_listener" {
-    load_balancer_arn = aws_lb.backend_alb.arn
-    port              = "80"
-    protocol          = "HTTP"
+resource "aws_lb_listener" "alb_listener_https" {
+  load_balancer_arn = aws_lb.backend_alb.arn
+  port             = 443
+  protocol         = "HTTPS"
+  certificate_arn  = var.certificate_arn
+  ssl_policy       = var.ssl_policy
 
-    default_action {
-        type             = "forward"
-        target_group_arn = aws_lb_target_group.backend_target_group.arn
-    }
+  default_action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.backend_target_group.arn
+  }
 
-    tags = {
-                Name = "${var.project_name}_alb_listener"
-                Environment = var.environment_name
-        }
+  tags = {
+    Name        = "${var.project_name}_alb_listener"
+    Environment = var.environment_name
+  }
 }
 
 # Define Backend Target Group
@@ -71,5 +73,12 @@ resource "aws_lb_target_group_attachment" "app_instance" {
   port             = 80
 }
 
-// TLS/ACM/Route53 removed per user request to prioritize getting infra up quickly.
-// If you want HTTPS later, re-add ACM + Route53 code or supply hosted_zone_id.
+resource "aws_security_group_rule" "allow_alb_to_ec2" {
+  description              = "Allow ALB to reach EC2 on HTTP"
+  type                     = "egress"
+  from_port                = 80
+  to_port                  = 80
+  protocol                 = "tcp"
+  security_group_id        = var.web_sg_id
+  source_security_group_id = aws_security_group.alb_sg.id
+}

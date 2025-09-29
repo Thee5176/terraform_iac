@@ -31,13 +31,26 @@ module "rds" {
   web_sg_id     = module.ec2.web_sg_id
 }
 
+module "acm" {
+  source = "./resources/acm"
+
+  project_name     = var.project_name
+  environment_name = var.environment_name
+
+  domain_name      = var.domain_name
+}
+
 module "alb" {
   source = "./resources/alb"
 
   project_name     = var.project_name
   environment_name = var.environment_name
   vpc_id           = module.vpc.vpc_id
+  certificate_arn  = module.acm.certificate_arn
   alb_subnet_ids   = module.vpc.alb_subnet_ids
   ec2_instance_id  = module.ec2.ec2_instance_id
   domain_name      = var.domain_name
+  web_sg_id        = module.ec2.web_sg_id
+
+  depends_on = [ module.acm ]
 }
