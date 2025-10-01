@@ -1,7 +1,15 @@
 # ALB Security Group
 resource "aws_security_group" "alb_sg" {
-    description = "Allow HTTP inbound traffic"
+    description = "Allow HTTP and HTTPS inbound traffic"
     vpc_id      = var.vpc_id
+    
+    ingress {
+        description = "HTTP from anywhere"
+        from_port   = 80
+        to_port     = 80
+        protocol    = "tcp"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
     
     ingress {
         description = "HTTPS from anywhere"
@@ -11,8 +19,16 @@ resource "aws_security_group" "alb_sg" {
         cidr_blocks = ["0.0.0.0/0"]
     }
 
+    egress {
+        description = "All outbound traffic"
+        from_port   = 0
+        to_port     = 0
+        protocol    = "-1"
+        cidr_blocks = ["0.0.0.0/0"]
+    }
+
     tags = {
-        Name    = "${var.project_name}_alb_sg"
+        Name        = "${var.project_name}_alb_sg"
         Environment = var.environment_name
     }
 }
@@ -36,10 +52,10 @@ resource "aws_lb" "backend_alb"{
 # ALB Listener
 resource "aws_lb_listener" "alb_listener_https" {
   load_balancer_arn = aws_lb.backend_alb.arn
-  port             = 443
-  protocol         = "HTTPS"
-  certificate_arn  = var.certificate_arn
-  ssl_policy       = var.ssl_policy
+  port              = "443"
+  protocol          = "HTTPS"
+  certificate_arn   = var.certificate_arn
+  ssl_policy        = var.ssl_policy
 
   default_action {
     type             = "forward"
@@ -48,6 +64,28 @@ resource "aws_lb_listener" "alb_listener_https" {
 
   tags = {
     Name        = "${var.project_name}_alb_listener"
+    Environment = var.environment_name
+  }
+}
+
+# Optional: HTTP to HTTPS redirect listener
+resource "aws_lb_listener" "alb_listener_http_redirect" {
+  load_balancer_arn = aws_lb.backend_alb.arn
+  port              = "80"
+  protocol          = "HTTP"
+
+  default_action {
+    type = "redirect"
+
+    redirect {
+      port        = "443"
+      protocol    = "HTTPS"
+      status_code = "HTTP_301"
+    }
+  }
+
+  tags = {
+    Name        = "${var.project_name}_alb_listener_redirect"
     Environment = var.environment_name
   }
 }

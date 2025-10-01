@@ -37,7 +37,7 @@ module "acm" {
   project_name     = var.project_name
   environment_name = var.environment_name
 
-  domain_name      = var.domain_name
+  domain_name = var.domain_name
 }
 
 module "alb" {
@@ -53,4 +53,34 @@ module "alb" {
   web_sg_id        = module.ec2.web_sg_id
 
   depends_on = [ module.acm ]
+}
+
+# Route53 A record pointing domain to ALB
+resource "aws_route53_record" "app_domain" {
+  zone_id = module.acm.route53_zone_id
+  name    = var.domain_name
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+
+  depends_on = [module.acm, module.alb]
+}
+
+# Route53 A record for www subdomain
+resource "aws_route53_record" "www_domain" {
+  zone_id = module.acm.route53_zone_id
+  name    = "www.${var.domain_name}"
+  type    = "A"
+
+  alias {
+    name                   = module.alb.alb_dns_name
+    zone_id                = module.alb.alb_zone_id
+    evaluate_target_health = true
+  }
+
+  depends_on = [module.acm, module.alb]
 }

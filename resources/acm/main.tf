@@ -1,42 +1,18 @@
-# # SSL Certificate
-resource "aws_acm_certificate" "ssl_cert" {
-  domain_name       = var.domain_name
-  validation_method = "DNS"
+# SSL Certificates - Using manually imported ACM certificate by domain
+data "aws_acm_certificate" "my_ssl_cert" {
+  domain      = var.domain_name
+  types       = ["IMPORTED"]
+  statuses    = ["ISSUED"]
+  most_recent = true
+}
+
+# Route53 Hosted Zone
+resource "aws_route53_zone" "main" {
+  name = var.domain_name
 
   tags = {
-      Name = "${var.project_name}_ssl_cert"
-      Environment = var.environment_name
+    Name        = "${var.project_name}-${var.environment_name}-hosted-zone"
+    Project     = var.project_name
+    Environment = var.environment_name
   }
-
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-resource "aws_route53_zone" "main" {
-  name         = var.domain_name
-}
-
-resource "aws_route53_record" "cert_validation" {
-  zone_id = aws_route53_zone.main.zone_id
-  name    = tolist(aws_acm_certificate.ssl_cert.domain_validation_options)[0].resource_record_name
-  type    = tolist(aws_acm_certificate.ssl_cert.domain_validation_options)[0].resource_record_type
-  ttl     = 60
-  records = [tolist(aws_acm_certificate.ssl_cert.domain_validation_options)[0].resource_record_value]
-}
-
-# # Validate the ACM certificate using the created Route53 records
-resource "aws_acm_certificate_validation" "ssl_cert_validation" {
-  certificate_arn         = aws_acm_certificate.ssl_cert.arn
-  validation_record_fqdns = [aws_route53_record.cert_validation.fqdn]
-
-#   # Ensure certificate is created before validation resource is destroyed/created
-  lifecycle {
-    create_before_destroy = true
-  }
-}
-
-# # Ensure the ALB listener waits for the certificate validation to complete
-resource "null_resource" "wait_for_cert_validation" {
-  depends_on = [aws_acm_certificate_validation.ssl_cert_validation]
 }
