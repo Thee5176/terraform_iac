@@ -100,3 +100,19 @@ variable "domain_name" {
   type        = string
   default     = "MyAccountingProject.com"
 }
+
+variable "auth0_domain" {
+  description = "Auth0 domain for authentication"
+  type        = string
+  default     = "dev-ps2b4tn12sg823uw.us.auth0.com"
+}
+variable "auth0_client_id" {
+  description = "Auth0 client ID for authentication"
+  type        = string
+  default     = "b40loEEHHYu6z9OQQHItaEdwRANnfmPF"
+}
+variable "auth0_client_secret" {
+  description = "Auth0 client secret for authentication"
+  type        = string
+  sensitive   = true
+}
