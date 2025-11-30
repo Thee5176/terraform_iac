@@ -52,7 +52,7 @@ module "alb" {
   domain_name      = var.domain_name
   web_sg_id        = module.ec2.web_sg_id
 
-  depends_on = [ module.acm ]
+  depends_on = [module.acm]
 }
 
 # Route53 A record pointing domain to ALB

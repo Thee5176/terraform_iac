@@ -48,7 +48,6 @@ resource "aws_lb" "backend_alb"{
     }
 }
 
-
 # ALB Listener
 resource "aws_lb_listener" "alb_listener_https" {
   load_balancer_arn = aws_lb.backend_alb.arn
@@ -68,14 +67,15 @@ resource "aws_lb_listener" "alb_listener_https" {
   }
 }
 
-# Optional: HTTP to HTTPS redirect listener
+# HTTP to HTTPS redirect listener
 resource "aws_lb_listener" "alb_listener_http_redirect" {
   load_balancer_arn = aws_lb.backend_alb.arn
   port              = "80"
   protocol          = "HTTP"
 
   default_action {
-    type = "redirect"
+    type = "forward"
+    target_group_arn = aws_lb_target_group.backend_target_group.arn
 
     redirect {
       port        = "443"
@@ -104,11 +104,109 @@ resource "aws_lb_target_group" "backend_target_group" {
     }
 }
 
-# Register Baclemd Target
+# Register Backend Target
 resource "aws_lb_target_group_attachment" "app_instance" {
   target_group_arn = aws_lb_target_group.backend_target_group.arn
   target_id        = var.ec2_instance_id
   port             = 80
+}
+
+# Target group for command API (instance port 8181)
+resource "aws_lb_target_group" "command_api_tg" {
+  target_type = "instance"
+  port        = 8181
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  health_check {
+    path                = "/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    matcher             = "200-399"
+  }
+  tags = {
+    Name        = "${var.project_name}_command_api_tg"
+    Environment = var.environment_name
+  }
+}
+
+resource "aws_lb_target_group_attachment" "command_instance" {
+  target_group_arn = aws_lb_target_group.command_api_tg.arn
+  target_id        = var.ec2_instance_id
+  port             = 8181
+}
+
+# Target group for query API (instance port 8182)
+resource "aws_lb_target_group" "query_api_tg" {
+  target_type = "instance"
+  port        = 8182
+  protocol    = "HTTP"
+  vpc_id      = var.vpc_id
+  health_check {
+    path                = "/health"
+    healthy_threshold   = 2
+    unhealthy_threshold = 2
+    timeout             = 5
+    interval            = 30
+    matcher             = "200-399"
+  }
+  tags = {
+    Name        = "${var.project_name}_query_api_tg"
+    Environment = var.environment_name
+  }
+}
+
+resource "aws_lb_target_group_attachment" "query_instance" {
+  target_group_arn = aws_lb_target_group.query_api_tg.arn
+  target_id        = var.ec2_instance_id
+  port             = 8182
+}
+
+# Listener rule for command API paths
+resource "aws_lb_listener_rule" "command_rule" {
+  listener_arn = aws_lb_listener.alb_listener_https.arn
+  priority     = 10
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.command_api_tg.arn
+  }
+  condition {
+    path_pattern { values = ["/api/command/*", "/command/*"] }
+  }
+}
+
+# Listener rule for query API paths
+resource "aws_lb_listener_rule" "query_rule" {
+  listener_arn = aws_lb_listener.alb_listener_https.arn
+  priority     = 11
+  action {
+    type             = "forward"
+    target_group_arn = aws_lb_target_group.query_api_tg.arn
+  }
+  condition {
+    path_pattern { values = ["/api/query/*", "/query/*"] }
+  }
+}
+
+resource "aws_security_group_rule" "allow_alb_to_command_service" {
+  description              = "Allow ALB to reach EC2 on HTTP port 8181"
+  type                     = "ingress"
+  to_port                  = 8181
+  from_port                = 8181
+  protocol                 = "tcp"
+  security_group_id        = var.web_sg_id
+  source_security_group_id = aws_security_group.alb_sg.id
+}
+
+resource "aws_security_group_rule" "allow_alb_to_query_service" {
+  description              = "Allow ALB to reach EC2 on HTTP port 8182"
+  type                     = "ingress"
+  to_port                  = 8182
+  from_port                = 8182
+  protocol                 = "tcp"
+  security_group_id        = var.web_sg_id
+  source_security_group_id = aws_security_group.alb_sg.id
 }
 
 resource "aws_security_group_rule" "allow_alb_to_ec2" {
