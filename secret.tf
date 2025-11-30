@@ -90,20 +90,20 @@ resource "github_actions_environment_secret" "github_token" {
 resource "github_actions_environment_variable" "auth0_domain" {
   repository    = data.github_repository.repo.name
   environment   = github_repository_environment.repo_env.environment
-  variable_name = "VITE_AUTH0_DOMAIN"
+  variable_name = "AUTH0_DOMAIN"
   value         = var.auth0_domain
 }
 
 resource "github_actions_environment_variable" "auth0_client_id" {
   repository    = data.github_repository.repo.name
   environment   = github_repository_environment.repo_env.environment
-  variable_name = "VITE_AUTH0_CLIENT_ID"
+  variable_name = "AUTH0_CLIENT_ID"
   value         = var.auth0_client_id
 }
 
 resource "github_actions_environment_secret" "auth0_client_secret" {
   repository      = data.github_repository.repo.name
   environment     = github_repository_environment.repo_env.environment
-  secret_name     = "VITE_AUTH0_CLIENT_SECRET"
+  secret_name     = "AUTH0_CLIENT_SECRET"
   plaintext_value = var.auth0_client_secret
 }
