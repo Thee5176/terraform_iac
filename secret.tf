@@ -94,6 +94,13 @@ resource "github_actions_environment_variable" "auth0_domain" {
   value         = var.auth0_domain
 }
 
+resource "github_actions_environment_variable" "auth0_audience" {
+  repository    = data.github_repository.repo.name
+  environment   = github_repository_environment.repo_env.environment
+  variable_name = "AUTH0_AUDIENCE"
+  value         = var.auth0_audience
+}
+
 resource "github_actions_environment_variable" "auth0_client_id" {
   repository    = data.github_repository.repo.name
   environment   = github_repository_environment.repo_env.environment

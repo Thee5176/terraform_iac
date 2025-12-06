@@ -106,6 +106,12 @@ variable "auth0_domain" {
   type        = string
   default     = "dev-ps2b4tn12sg823uw.us.auth0.com"
 }
+
+variable "auth0_audience" {
+  description = "Auth0 audience for authentication"
+  type        = string
+  default     = "https://dev-ps2b4tn12sg823uw.us.auth0.com/api/v2/"
+}
 variable "auth0_client_id" {
   description = "Auth0 client ID for authentication"
   type        = string
